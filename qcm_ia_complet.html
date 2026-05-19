@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QCM – Intelligence Artificielle</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a12;
+    --card: #12121e;
+    --accent: #6c63ff;
+    --accent2: #ff6584;
+    --correct: #00e096;
+    --wrong: #ff4d6d;
+    --text: #e8e8f0;
+    --muted: #7070a0;
+    --border: #2a2a40;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    padding: 20px;
+    background-image: radial-gradient(ellipse at 20% 10%, #1a1040 0%, transparent 50%),
+                      radial-gradient(ellipse at 80% 80%, #0d1a30 0%, transparent 50%);
+  }
+  header { text-align: center; padding: 40px 20px 30px; }
+  header h1 {
+    font-size: clamp(1.8rem, 5vw, 3rem);
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -1px;
+    margin-bottom: 8px;
+  }
+  header p { color: var(--muted); font-family: 'Space Mono', monospace; font-size: 0.8rem; }
+  .stats-bar { display: flex; justify-content: center; gap: 30px; margin: 20px auto; max-width: 760px; flex-wrap: wrap; }
+  .stat { text-align: center; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px 24px; min-width: 100px; }
+  .stat-val { font-size: 1.6rem; font-weight: 800; color: var(--accent); }
+  .stat-lbl { font-size: 0.65rem; color: var(--muted); font-family: 'Space Mono', monospace; text-transform: uppercase; letter-spacing: 1px; }
+  .progress-wrap { max-width: 760px; margin: 10px auto 30px; background: var(--border); border-radius: 99px; height: 6px; overflow: hidden; }
+  .progress-bar { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 99px; transition: width 0.4s ease; }
+  .quiz-container { max-width: 760px; margin: 0 auto; }
+  .question-card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 32px; margin-bottom: 24px; transition: all 0.3s; animation: slideIn 0.4s ease; }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  .q-number { font-family: 'Space Mono', monospace; font-size: 0.7rem; color: var(--accent); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px; }
+  .q-category { display: inline-block; background: rgba(108,99,255,0.15); border: 1px solid rgba(108,99,255,0.3); color: var(--accent); font-size: 0.65rem; font-family: 'Space Mono', monospace; padding: 3px 10px; border-radius: 99px; margin-bottom: 14px; text-transform: uppercase; letter-spacing: 1px; }
+  .q-text { font-size: 1.05rem; font-weight: 700; line-height: 1.5; margin-bottom: 22px; color: var(--text); }
+  .options { display: flex; flex-direction: column; gap: 10px; }
+  .option { background: rgba(255,255,255,0.03); border: 1.5px solid var(--border); border-radius: 12px; padding: 14px 18px; cursor: pointer; font-family: 'Syne', sans-serif; font-size: 0.9rem; color: var(--text); text-align: left; transition: all 0.2s; display: flex; align-items: flex-start; gap: 12px; }
+  .option:hover:not(:disabled) { border-color: var(--accent); background: rgba(108,99,255,0.1); transform: translateX(4px); }
+  .option .opt-letter { width: 28px; height: 28px; min-width: 28px; border-radius: 8px; background: var(--border); display: flex; align-items: center; justify-content: center; font-family: 'Space Mono', monospace; font-size: 0.7rem; font-weight: 700; color: var(--muted); transition: all 0.2s; margin-top: 2px; }
+  .option.correct { border-color: var(--correct); background: rgba(0,224,150,0.08); }
+  .option.correct .opt-letter { background: var(--correct); color: #000; }
+  .option.wrong { border-color: var(--wrong); background: rgba(255,77,109,0.08); }
+  .option.wrong .opt-letter { background: var(--wrong); color: #fff; }
+  .option:disabled { cursor: not-allowed; }
+  .explanation { margin-top: 16px; padding: 14px 18px; background: rgba(108,99,255,0.08); border-left: 3px solid var(--accent); border-radius: 0 10px 10px 0; font-size: 0.85rem; color: var(--muted); line-height: 1.6; display: none; }
+  .explanation.show { display: block; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+  .nav-btns { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 30px; flex-wrap: wrap; }
+  button.btn { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.9rem; padding: 12px 28px; border-radius: 12px; border: none; cursor: pointer; transition: all 0.2s; }
+  .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; }
+  .btn-primary:hover { opacity: 0.88; transform: scale(1.02); }
+  .btn-secondary { background: var(--card); border: 1.5px solid var(--border); color: var(--muted); }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--text); }
+  .result-screen { display: none; text-align: center; padding: 60px 20px; animation: slideIn 0.5s ease; }
+  .result-screen.show { display: block; }
+  .score-circle { width: 160px; height: 160px; border-radius: 50%; margin: 0 auto 30px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: conic-gradient(var(--accent) var(--pct), var(--border) 0); position: relative; }
+  .score-circle::before { content: ''; position: absolute; inset: 12px; background: var(--bg); border-radius: 50%; }
+  .score-inner { position: relative; z-index: 1; }
+  .score-num { font-size: 2.2rem; font-weight: 800; color: var(--accent); }
+  .score-den { font-size: 0.7rem; color: var(--muted); font-family: 'Space Mono', monospace; }
+  .result-msg { font-size: 1.4rem; font-weight: 800; margin-bottom: 8px; }
+  .result-sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 40px; }
+  .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 28px; max-width: 760px; margin-left: auto; margin-right: auto; }
+  .filter-btn { font-family: 'Space Mono', monospace; font-size: 0.62rem; text-transform: uppercase; letter-spacing: 1px; padding: 6px 12px; border-radius: 99px; border: 1.5px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; transition: all 0.2s; }
+  .filter-btn.active, .filter-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(108,99,255,0.1); }
+  .counter-pill { font-family: 'Space Mono', monospace; font-size: 0.65rem; background: rgba(108,99,255,0.12); border: 1px solid rgba(108,99,255,0.25); padding: 4px 10px; border-radius: 99px; color: var(--accent); }
+  .results-breakdown { max-width: 760px; margin: 30px auto 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+  .cat-result { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-align: left; }
+  .cat-result-name { font-size: 0.7rem; font-family: 'Space Mono', monospace; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  .cat-result-score { font-size: 1.2rem; font-weight: 800; color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>QCM — Intelligence Artificielle</h1>
+  <p>Cours complet · 75 questions · Toutes les notions couvertes</p>
+</header>
+
+<div class="stats-bar">
+  <div class="stat"><div class="stat-val" id="s-current">1</div><div class="stat-lbl">Question</div></div>
+  <div class="stat"><div class="stat-val" id="s-total">75</div><div class="stat-lbl">Total</div></div>
+  <div class="stat"><div class="stat-val" id="s-score">0</div><div class="stat-lbl">Score</div></div>
+  <div class="stat"><div class="stat-val" id="s-pct">0%</div><div class="stat-lbl">Réussite</div></div>
+</div>
+
+<div class="progress-wrap">
+  <div class="progress-bar" id="progress-bar" style="width:1.3%"></div>
+</div>
+
+<div class="filter-bar">
+  <button class="filter-btn active" onclick="filterCat('all',this)">Tout (75)</button>
+  <button class="filter-btn" onclick="filterCat('Fondamentaux',this)">Fondamentaux</button>
+  <button class="filter-btn" onclick="filterCat('Histoire',this)">Histoire</button>
+  <button class="filter-btn" onclick="filterCat('Machine Learning',this)">Machine Learning</button>
+  <button class="filter-btn" onclick="filterCat('Régression',this)">Régression</button>
+  <button class="filter-btn" onclick="filterCat('Classification',this)">Classification</button>
+  <button class="filter-btn" onclick="filterCat('Clustering',this)">Clustering</button>
+  <button class="filter-btn" onclick="filterCat('Renforcement',this)">Renforcement</button>
+  <button class="filter-btn" onclick="filterCat('Deep Learning',this)">Deep Learning</button>
+  <button class="filter-btn" onclick="filterCat('IA Générative',this)">IA Générative</button>
+  <button class="filter-btn" onclick="filterCat('Prompts',this)">Prompts</button>
+  <button class="filter-btn" onclick="filterCat('Outils',this)">Outils</button>
+</div>
+
+<div id="quiz-screen" class="quiz-container">
+  <div id="q-card" class="question-card"></div>
+  <div class="nav-btns">
+    <button class="btn btn-secondary" onclick="prevQ()">← Précédent</button>
+    <span class="counter-pill" id="counter-pill">1 / 75</span>
+    <button class="btn btn-primary" onclick="nextQ()">Suivant →</button>
+  </div>
+</div>
+
+<div id="result-screen" class="result-screen">
+  <div class="score-circle" id="score-circle">
+    <div class="score-inner">
+      <div class="score-num" id="final-score">0</div>
+      <div class="score-den" id="final-den">/ 75</div>
+    </div>
+  </div>
+  <div class="result-msg" id="result-msg"></div>
+  <div class="result-sub" id="result-sub"></div>
+  <div id="cat-breakdown" class="results-breakdown"></div>
+  <div style="margin-top:30px">
+    <button class="btn btn-primary" onclick="restart()" style="margin:8px">🔄 Recommencer</button>
+    <button class="btn btn-secondary" onclick="reviewWrong()" style="margin:8px">❌ Revoir les erreurs</button>
+  </div>
+</div>
+
+<script>
+const ALL_QUESTIONS = [
+
+  // ══════════════════════════════════════════════════════
+  // FONDAMENTAUX (10)
+  // ══════════════════════════════════════════════════════
+  {
+    cat:"Fondamentaux",
+    q:"Quelle est la définition correcte de l'Intelligence Artificielle ?",
+    opts:["La capacité d'un ordinateur à effectuer des calculs très rapides","La capacité d'un ordinateur à apprendre des données, corriger ses erreurs et prendre des décisions","Un logiciel qui simule uniquement l'apparence humaine","Un robot capable de se déplacer seul"],
+    ans:1,
+    exp:"L'IA est définie comme la capacité d'un ordinateur à apprendre des données, corriger ses erreurs et prendre des décisions."
+  },
+  {
+    cat:"Fondamentaux",
+    q:"Quelles sont les 5 étapes du fonctionnement de l'IA dans l'ordre correct ?",
+    opts:["Apprentissage → Collecte → Modèle → Application → Amélioration","Collecte des données → Phase d'apprentissage → Modèle entraîné → Application → Amélioration","Application → Collecte → Apprentissage → Amélioration → Modèle","Modèle → Collecte → Application → Apprentissage → Amélioration"],
+    ans:1,
+    exp:"L'IA fonctionne en 5 étapes : 1-Collecte des données, 2-Phase d'apprentissage, 3-Modèle entraîné, 4-Application, 5-Amélioration continue."
+  },
+  {
+    cat:"Fondamentaux",
+    q:"Qu'est-ce qu'un agent d'intelligence artificielle ?",
+    opts:["Un humain qui programme des robots","Un système capable de percevoir son environnement, analyser les informations et prendre des décisions","Un simple logiciel de traitement de texte","Une base de données intelligente"],
+    ans:1,
+    exp:"Un agent IA observe (reçoit des données), réfléchit (traite et apprend) et agit (donne une décision ou une action)."
+  },
+  {
+    cat:"Fondamentaux",
+    q:"Quels sont les deux types d'interactions d'un agent IA ?",
+    opts:["Interaction vocale et visuelle","Interaction locale et distante","Interaction avec une base de données et interaction avec un environnement","Interaction en ligne et hors ligne"],
+    ans:2,
+    exp:"L'IA interagit soit avec une base de données (analyse → résultats), soit avec un environnement (perçoit l'état → réalise une action)."
+  },
+  {
+    cat:"Fondamentaux",
+    q:"Quelle capacité de l'IA correspond à la vidéosurveillance et la détection d'intrusion ?",
+    opts:["Reconnaissance vocale","Prise de décision","Traduction","Perception visuelle"],
+    ans:3,
+    exp:"La perception visuelle permet d'analyser des images/vidéos : reconnaissance faciale, détection d'objets, vidéosurveillance."
+  },
+  {
+    cat:"Fondamentaux",
+    q:"La capacité de Google Translate est liée à quelle fonction de l'IA ?",
+    opts:["Perception visuelle","Reconnaissance vocale","Traduction","Prise de décision"],
+    ans:2,
+    exp:"La traduction est la capacité d'un système à convertir un texte ou une parole d'une langue à une autre. Ex : Google Translate, DeepL."
+  },
+  {
+    cat:"Fondamentaux",
+    q:"Quelle est la hiérarchie correcte des composants de l'IA ?",
+    opts:["Deep Learning ⊃ ML ⊃ Réseaux de neurones ⊃ IA","IA ⊃ Machine Learning ⊃ Réseaux de neurones ⊃ Deep Learning","ML ⊃ IA ⊃ Deep Learning ⊃ Réseaux de neurones","IA ⊃ Deep Learning ⊃ ML ⊃ Réseaux de neurones"],
+    ans:1,
+    exp:"L'IA est le domaine le plus large → ML (apprendre des données) → Réseaux de neurones (inspirés du cerveau) → Deep Learning (forme avancée)."
+  },
+  {
+    cat:"Fondamentaux",
+    q:"Quelle est la différence entre un modèle discriminatif et un modèle génératif ?",
+    opts:["Il n'y a aucune différence","Le discriminatif classe/prédit des étiquettes, le génératif crée de nouvelles données similaires à celles apprises","Le discriminatif génère des images, le génératif classe les données","Le discriminatif utilise le Deep Learning, le génératif non"],
+    ans:1,
+    exp:"Modèle discriminatif : classe emails en spam/non spam. Modèle génératif : génère de nouvelles images de visages réalistes qui n'existent pas."
+  },
+  {
+    cat:"Fondamentaux",
+    q:"Quelle est la différence entre l'IA prédictive et l'IA générative ?",
+    opts:["L'IA prédictive crée du contenu, l'IA générative prédit","L'IA prédictive prédit un résultat à partir de données passées, l'IA générative crée du contenu nouveau","Il n'y a aucune différence","L'IA prédictive est plus récente que l'IA générative"],
+    ans:1,
+    exp:"IA prédictive : anticipe un résultat (ex : diagnostic médical). IA générative : crée du contenu nouveau (texte, image, son, vidéo)."
+  },
+  {
+    cat:"Fondamentaux",
+    q:"Quels sont les deux types d'actions possibles lors d'une interaction avec une base de données ?",
+    opts:["Lire et Écrire","Prédire et Classer","Analyser et Supprimer","Stocker et Récupérer"],
+    ans:1,
+    exp:"Lors d'une interaction avec une base de données, l'IA peut soit Prédire (estimer une valeur) soit Classer (organiser les données en catégories)."
+  },
+
+  // ══════════════════════════════════════════════════════
+  // HISTOIRE (7)
+  // ══════════════════════════════════════════════════════
+  {
+    cat:"Histoire",
+    q:"Qu'a accompli Alan Turing pendant la Seconde Guerre mondiale ?",
+    opts:["Inventé le premier ordinateur personnel","Déchiffré des messages allemands créés par la machine ENIGMA","Créé le premier réseau de neurones artificiel","Développé le premier robot autonome"],
+    ans:1,
+    exp:"Dans les années 40, Alan Turing a utilisé l'IA pour déchiffrer les messages chiffrés de la machine ENIGMA, aidant ainsi les Alliés."
+  },
+  {
+    cat:"Histoire",
+    q:"Quel est l'objectif du Test de Turing proposé en 1950 ?",
+    opts:["Mesurer la vitesse de calcul d'un ordinateur","Vérifier si une IA est capable d'imiter une conversation humaine","Tester la résistance physique d'un robot","Évaluer la qualité d'une base de données"],
+    ans:1,
+    exp:"Le Test de Turing (1950) vise à évaluer la capacité d'une machine à penser de manière intelligente en imitant le comportement humain lors d'une conversation."
+  },
+  {
+    cat:"Histoire",
+    q:"Qu'a réalisé Arthur Samuel dans les années 60 ?",
+    opts:["Battu le champion du monde aux échecs","Développé une IA qui joue au jeu de dames en auto-apprentissage","Inventé le Deep Learning","Créé le premier assistant vocal"],
+    ans:1,
+    exp:"Dans les années 60, Arthur Samuel a développé une IA capable de jouer au jeu de dames et de s'améliorer seule par auto-apprentissage."
+  },
+  {
+    cat:"Histoire",
+    q:"Qu'est-ce que le Machine Learning né dans les années 80 ?",
+    opts:["Un robot physique programmable","Une méthode utilisant des probabilités statistiques pour donner aux ordinateurs la capacité d'apprendre sans programmation explicite","Un langage de programmation spécialisé","Un système de bases de données intelligent"],
+    ans:1,
+    exp:"Le Machine Learning (années 80) utilise des probabilités statistiques pour donner aux ordinateurs la capacité d'apprendre par eux-mêmes sans programmation explicite."
+  },
+  {
+    cat:"Histoire",
+    q:"En quelle année Deep Blue d'IBM a-t-il battu Garry Kasparov ?",
+    opts:["1985","1990","1997","2005"],
+    ans:2,
+    exp:"En 1997, Deep Blue a battu Garry Kasparov, champion du monde des échecs, démontrant les progrès de l'IA dans les domaines compétitifs."
+  },
+  {
+    cat:"Histoire",
+    q:"Quelle technologie a révolutionné l'IA dans les années 2000-2010 ?",
+    opts:["La programmation par règles","Le Deep Learning basé sur des réseaux de neurones artificiels s'inspirant du cerveau humain","Les bases de données relationnelles","Le traitement de texte automatique"],
+    ans:1,
+    exp:"Le Deep Learning (2000-2010), basé sur des réseaux de neurones artificiels, a révolutionné des domaines comme la reconnaissance d'images et le traitement du langage."
+  },
+  {
+    cat:"Histoire",
+    q:"Quelle est la 3ème vague d'évolution de l'IA (2020 à aujourd'hui) ?",
+    opts:["Les robots physiques autonomes","Intégrer des capacités de raisonnement, d'apprentissage et de compréhension du langage naturel","Les bases de données distribuées","La programmation en langage naturel"],
+    ans:1,
+    exp:"La 3ème vague (2020+) vise à intégrer Réfléchir + Apprendre + Comprendre dans une même IA, comme les modèles GPT et les assistants virtuels avancés."
+  },
+
+  // ══════════════════════════════════════════════════════
+  // MACHINE LEARNING GÉNÉRAL (5)
+  // ══════════════════════════════════════════════════════
+  {
+    cat:"Machine Learning",
+    q:"Quelle est la définition du Machine Learning ?",
+    opts:["Programmer manuellement chaque règle que la machine doit suivre","Une branche de l'IA qui permet aux machines d'apprendre à partir de données sans être programmées explicitement","Un logiciel qui copie les réponses d'un expert humain","Un système qui mémorise toutes les données sans apprendre"],
+    ans:1,
+    exp:"Le ML permet aux machines d'identifier des motifs dans les données et d'améliorer leurs performances avec l'expérience, sans programmation explicite."
+  },
+  {
+    cat:"Machine Learning",
+    q:"Quelles sont les trois approches fondamentales du Machine Learning ?",
+    opts:["Classification, Régression, Clustering","Supervisé, Non Supervisé, Renforcement","Profond, Superficiel, Moyen","Neuronal, Statistique, Probabiliste"],
+    ans:1,
+    exp:"Les 3 piliers : Supervisé (données étiquetées → prédire/classer), Non Supervisé (structures cachées), Renforcement (récompenses/pénalités)."
+  },
+  {
+    cat:"Machine Learning",
+    q:"Quelles sont les étapes du processus ML dans l'ordre correct ?",
+    opts:["Entraîner → Identifier → Choisir → Construire → Opérationnel","Identifier → Choisir → Construire → Entraîner → Opérationnel","Opérationnel → Entraîner → Construire → Identifier","Choisir → Construire → Identifier → Entraîner → Opérationnel"],
+    ans:1,
+    exp:"1-Identifier les données, 2-Choisir l'algorithme adapté, 3-Construire le modèle, 4-Entraîner sur les données, 5-Rendre opérationnel."
+  },
+  {
+    cat:"Machine Learning",
+    q:"Quelles techniques importantes appartiennent au Machine Learning ?",
+    opts:["HTML, CSS, JavaScript","Régression, Classification, SVM, Forêts aléatoires","Word, Excel, PowerPoint","Python, Java, C++"],
+    ans:1,
+    exp:"Le ML comprend : Régression (prédire une valeur), Classification (prédire une catégorie), SVM (séparation entre classes), Forêts aléatoires (ensemble d'arbres)."
+  },
+  {
+    cat:"Machine Learning",
+    q:"Quelle est la différence entre l'apprentissage supervisé et non supervisé ?",
+    opts:["Il n'y a aucune différence","Supervisé utilise des données étiquetées pour prédire/classer ; non supervisé découvre des structures sans étiquettes","Supervisé est plus rapide que non supervisé","Non supervisé utilise des données étiquetées, supervisé non"],
+    ans:1,
+    exp:"Supervisé : données étiquetées, on connaît la bonne réponse. Non supervisé : pas d'étiquettes, la machine découvre seule les groupes et relations."
+  },
+
+  // ══════════════════════════════════════════════════════
+  // RÉGRESSION (8)
+  // ══════════════════════════════════════════════════════
+  {
+    cat:"Régression",
+    q:"À quel type de problème s'applique la régression en apprentissage supervisé ?",
+    opts:["Prédire une catégorie (spam/non spam)","Prédire une valeur continue et quantitative (prix, température, chiffre d'affaires)","Regrouper des données sans étiquettes","Générer de nouvelles images"],
+    ans:1,
+    exp:"La régression prédit une variable quantitative continue : prix d'une maison, température, chiffre d'affaires, gain financier."
+  },
+  {
+    cat:"Régression",
+    q:"Quelle est la formule de la régression linéaire simple ?",
+    opts:["Y = aX² + b","Y = a/X + b","Y = aX + b","Y = a × b × X"],
+    ans:2,
+    exp:"Y = aX + b : 'a' est la pente (coefficient directeur) qui indique la variation de Y pour chaque unité de X, 'b' est la constante (ordonnée à l'origine)."
+  },
+  {
+    cat:"Régression",
+    q:"Dans Y = aX + b, que représente le coefficient 'a' ?",
+    opts:["L'ordonnée à l'origine (valeur de Y quand X=0)","La pente (coefficient directeur) qui indique la variation de Y par unité de X","La variable dépendante à prédire","La constante indépendante"],
+    ans:1,
+    exp:"'a' est la pente (coefficient directeur) : il indique de combien Y augmente ou diminue pour chaque augmentation d'une unité de X."
+  },
+  {
+    cat:"Régression",
+    q:"Dans Y = aX + b, que représente 'b' ?",
+    opts:["La pente de la droite","La variable à prédire","La constante (ordonnée à l'origine), valeur de Y quand X = 0","Le nombre de données d'entraînement"],
+    ans:2,
+    exp:"'b' est la constante ou ordonnée à l'origine : c'est la valeur que prend Y lorsque X est égal à 0."
+  },
+  {
+    cat:"Régression",
+    q:"Dans le tableau du cours (2016-2025), si CA = 400 et on veut prédire le gain, quel type de régression utiliser ?",
+    opts:["Régression multiple car plusieurs variables","Régression linéaire simple car une seule variable X (CA) pour prédire Y (gain)","Classification car il y a des catégories","Clustering car pas d'étiquettes"],
+    ans:1,
+    exp:"Une seule variable explicative (CA) → régression linéaire simple Y = aX + b. Si on ajoute Marketing, Coût, Employés → régression multiple."
+  },
+  {
+    cat:"Régression",
+    q:"Qu'est-ce que la régression multiple ?",
+    opts:["Une régression avec plusieurs variables dépendantes","Une extension de la régression linéaire simple pour prédire Y à partir de plusieurs variables explicatives X1, X2, X3...","Une régression appliquée plusieurs fois","Une méthode de classification avancée"],
+    ans:1,
+    exp:"La régression multiple : Y = a1·X1 + a2·X2 + a3·X3 + b. Ex : prédire le Gain à partir du CA, Marketing, Coût de production et Employés."
+  },
+  {
+    cat:"Régression",
+    q:"Dans le tableau du cours, quelles sont les variables explicatives utilisées en régression multiple pour prédire le Gain ?",
+    opts:["Uniquement le Chiffre d'affaires","CA, Marketing, Coût de production, Employés","Année, Mois, Trimestre","Surface, Chambres, Quartier"],
+    ans:1,
+    exp:"La régression multiple dans le cours utilise : CA (X1), Marketing (X2), Coût de production (X3), Employés (X4) pour prédire le Gain (Y)."
+  },
+  {
+    cat:"Régression",
+    q:"Pour prédire le prix d'une maison, quelles features (caractéristiques) sont utilisées ?",
+    opts:["Uniquement la surface","Surface, nombre de chambres, quartier, année de construction","Couleur, style architectural, décoration","Propriétaire, historique de vente"],
+    ans:1,
+    exp:"Le modèle de régression pour les maisons utilise : Surface (m²), Nombre de chambres, Quartier et Année de construction comme variables explicatives."
+  },
+
+  // ══════════════════════════════════════════════════════
+  // CLASSIFICATION (8)
+  // ══════════════════════════════════════════════════════
+  {
+    cat:"Classification",
+    q:"À quel type de problème s'applique la classification en apprentissage supervisé ?",
+    opts:["Prédire une valeur continue (prix, température)","Prédire une variable qualitative (catégorie, classe)","Regrouper des données sans étiquettes","Générer de nouveaux exemples"],
+    ans:1,
+    exp:"La classification prédit une variable qualitative : spam/non spam, client fidèle/occasionnel/à risque, produit conforme/défectueux."
+  },
+  {
+    cat:"Classification",
+    q:"Dans l'exemple de détection de spam, quelles sont les features (données d'entrée) ?",
+    opts:["Uniquement l'expéditeur","Contenu du message, expéditeur, objet du mail, nombre de liens","Uniquement la date d'envoi","Taille du fichier et format"],
+    ans:1,
+    exp:"Les features pour détecter un spam : contenu du message, expéditeur, objet du mail, nombre de liens. La sortie (target) est : Spam ou Non Spam."
+  },
+  {
+    cat:"Classification",
+    q:"Un email contenant 'Gagnez 1000€ aujourd'hui' avec 3 liens d'un expéditeur inconnu sera probablement classé comment ?",
+    opts:["Non Spam","Spam","Neutre","Indéterminé"],
+    ans:1,
+    exp:"Les emails avec des mots comme 'gagnez', 'cadeau', d'expéditeurs inconnus avec plusieurs liens sont classés Spam par le modèle de classification."
+  },
+  {
+    cat:"Classification",
+    q:"Dans l'exemple de classification des clients, quelles features sont utilisées ?",
+    opts:["Uniquement l'âge et le revenu","Âge, Revenu annuel, Montant total achats, Nombre d'achats/an, Satisfaction","Uniquement le nombre d'achats","Code postal, ville, pays"],
+    ans:1,
+    exp:"Les features utilisées : Âge, Revenu annuel, Montant total achats, Nombre d'achats/an, Score de satisfaction → Label : Fidèle, Occasionnel, À risque."
+  },
+  {
+    cat:"Classification",
+    q:"Un client avec 15 achats/an, 7000 Dhs de montant total et satisfaction 5 sera classé comment ?",
+    opts:["À risque","Occasionnel","Fidèle","Indéterminé"],
+    ans:2,
+    exp:"Beaucoup d'achats + montant élevé + satisfaction élevée = profil Fidèle. Peu d'achats + faible satisfaction = À risque."
+  },
+  {
+    cat:"Classification",
+    q:"Dans l'exemple industrie du cours, que prédit la classification pour un produit fabriqué ?",
+    opts:["Son prix de vente","S'il est Conforme ou Défectueux","Sa date de fabrication","Sa destination finale"],
+    ans:1,
+    exp:"La classification en industrie prédit si un produit est Conforme ou avec Défaut, à partir de variables comme température, pression, temps de fabrication."
+  },
+  {
+    cat:"Classification",
+    q:"Dans l'exemple crédit bancaire, que prédit la classification ?",
+    opts:["Le montant exact du prêt","Si le client est Capable de rembourser ou Non Capable","La durée du remboursement","Le taux d'intérêt à appliquer"],
+    ans:1,
+    exp:"La classification bancaire prédit : Capable de rembourser / Non Capable, à partir de variables comme Revenu, Âge, Historique de crédit."
+  },
+  {
+    cat:"Classification",
+    q:"Quelle est la variable cible (target) dans une tâche de classification ?",
+    opts:["Une valeur numérique continue","Une catégorie ou classe discrète (ex: spam/non spam, fidèle/à risque)","Une probabilité entre 0 et 1","Un ensemble de règles"],
+    ans:1,
+    exp:"Dans une classification, la variable à prédire est toujours discrète (catégorie) : spam/non spam, conforme/défectueux, fidèle/occasionnel/à risque."
+  },
+
+  // ══════════════════════════════════════════════════════
+  // CLUSTERING (6)
+  // ══════════════════════════════════════════════════════
+  {
+    cat:"Clustering",
+    q:"Quelle est la caractéristique principale de l'apprentissage non supervisé (clustering) ?",
+    opts:["Il utilise des données étiquetées avec des catégories connues","Il utilise des données sans étiquettes et découvre des structures cachées automatiquement","Il nécessite un superviseur humain pour valider chaque résultat","Il prédit uniquement des valeurs numériques"],
+    ans:1,
+    exp:"Le clustering non supervisé analyse les données seul, sans connaître la bonne réponse, pour découvrir des groupes, structures ou relations cachées."
+  },
+  {
+    cat:"Clustering",
+    q:"Comment fonctionne l'algorithme K-means ?",
+    opts:["Il attribue des étiquettes prédéfinies aux données","Il place k centroïdes, attribue chaque point au plus proche, recalcule les centres et répète jusqu'à stabilisation","Il prédit une valeur continue à partir des données","Il génère de nouvelles données similaires à l'ensemble d'entraînement"],
+    ans:1,
+    exp:"K-means : 1-Place k centroïdes, 2-Attribue chaque point au centroïde le plus proche, 3-Recalcule les centres, 4-Répète jusqu'à stabilisation."
+  },
+  {
+    cat:"Clustering",
+    q:"Dans l'exemple marketing du cours, quelles features sont utilisées pour le clustering des consommateurs ?",
+    opts:["Uniquement l'âge","Âge, Revenus, Fréquence d'achat/mois, Types de produits achetés","Nom, prénom, adresse email","Couleur préférée et marque favorite"],
+    ans:1,
+    exp:"Le clustering marketing utilise : Âge, Revenus (Dhs), Fréquence d'achat/mois, Types de produits achetés → pour former des clusters sans étiquettes."
+  },
+  {
+    cat:"Clustering",
+    q:"Dans l'exemple du cours, le Cluster 1 regroupe quel type de consommateurs ?",
+    opts:["Adultes à revenus élevés, achats rares mais gros volumes","Seniors, achats réguliers de produits santé","Jeunes consommateurs urbains, achats fréquents de technologie et vêtements","Professionnels, achats de matériel de bureau"],
+    ans:2,
+    exp:"Cluster 1 (ID 1,3,6) : Jeunes consommateurs urbains, achats fréquents (tech, vêtements). Cluster 2 : Adultes revenus élevés. Cluster 3 : Seniors (santé, alimentation)."
+  },
+  {
+    cat:"Clustering",
+    q:"Quels algorithmes de clustering sont mentionnés dans le cours ?",
+    opts:["Régression logistique, SVM, Forêts aléatoires","K-means, DBSCAN, Hierarchical clustering","GPT, BERT, LLaMA","CNN, RNN, LSTM"],
+    ans:1,
+    exp:"Les algorithmes de clustering mentionnés : K-means (le plus connu), DBSCAN, et Hierarchical clustering (clustering hiérarchique)."
+  },
+  {
+    cat:"Clustering",
+    q:"Dans l'exemple clustering des étudiants du cours, quelles variables sont utilisées ?",
+    opts:["Âge, revenu, fréquence d'achat","Note Math et Note Statistique","Nom, prénom, filière","Présence, retards, absences"],
+    ans:1,
+    exp:"L'exemple des étudiants utilise Note Math et Note Statistique pour appliquer K-means et regrouper les étudiants par niveau de performance."
+  },
+
+  // ══════════════════════════════════════════════════════
+  // RENFORCEMENT (5)
+  // ══════════════════════════════════════════════════════
+  {
+    cat:"Renforcement",
+    q:"Sur quels 3 éléments repose l'apprentissage par renforcement ?",
+    opts:["Données, Algorithme, Modèle","Agent, Environnement, Récompense","Entrée, Traitement, Sortie","Superviseur, Étudiant, Évaluateur"],
+    ans:1,
+    exp:"L'apprentissage par renforcement repose sur : Agent (qui apprend et agit), Environnement (dans lequel il évolue), Récompense (signal positif/négatif)."
+  },
+  {
+    cat:"Renforcement",
+    q:"Dans l'exemple de la voiture autonome, quelle action reçoit une pénalité ?",
+    opts:["Rester sur la route","Éviter un obstacle","Faire un accident ou sortir de la route","Respecter un feu rouge"],
+    ans:2,
+    exp:"La voiture autonome reçoit une récompense si elle reste sur la route ou évite un obstacle, et une pénalité si elle sort de la route ou fait un accident."
+  },
+  {
+    cat:"Renforcement",
+    q:"Dans l'exemple du robot en usine, quelle est la récompense définie ?",
+    opts:["+1 pour chaque déplacement","+10 pour dépôt correct / -1 pour collision ou mauvaise action","Vitesse maximale de déplacement","Consommation minimale d'énergie"],
+    ans:1,
+    exp:"Pour le robot mobile : +10 pour un dépôt correct de pièces, -1 pour une collision ou une mauvaise action. Il apprend à optimiser ses trajets."
+  },
+  {
+    cat:"Renforcement",
+    q:"Dans l'exemple du diagnostic médical par renforcement, qui est l'Agent ?",
+    opts:["Le médecin humain","Le patient","Le système d'IA","L'hôpital"],
+    ans:2,
+    exp:"Agent = le système d'IA. Environnement = les données du patient. Actions = proposer un diagnostic. Récompense = +si diagnostic correct, -si incorrect."
+  },
+  {
+    cat:"Renforcement",
+    q:"Comment l'agent améliore-t-il ses décisions dans l'apprentissage par renforcement ?",
+    opts:["En mémorisant toutes les données","En recevant des récompenses/pénalités et en ajustant sa stratégie pour maximiser les récompenses futures","En copiant les décisions d'un expert humain","En utilisant uniquement des données étiquetées"],
+    ans:1,
+    exp:"L'agent apprend par essais-erreurs : il reçoit un retour (récompense/pénalité) pour chaque action, ajuste sa stratégie et devient progressivement plus précis."
+  },
+
+  // ══════════════════════════════════════════════════════
+  // DEEP LEARNING (12)
+  // ══════════════════════════════════════════════════════
+  {
+    cat:"Deep Learning",
+    q:"Qu'est-ce que le Deep Learning ?",
+    opts:["Un algorithme de tri de données classique","Une forme avancée de ML utilisant des réseaux de neurones avec plusieurs couches pour apprendre des informations complexes","Un système de bases de données très profond","Un langage de programmation spécialisé pour l'IA"],
+    ans:1,
+    exp:"Le Deep Learning utilise des réseaux de neurones artificiels composés de plusieurs couches successives pour apprendre automatiquement des représentations complexes."
+  },
+  {
+    cat:"Deep Learning",
+    q:"Quels sont les 3 types de couches dans un réseau de neurones ?",
+    opts:["Entrée, Mémoire, Décision","Couche d'entrée, Couches cachées, Couche de sortie","Simple, Double, Triple","Données, Analyse, Résultat"],
+    ans:1,
+    exp:"1-Couche d'entrée : reçoit les données brutes. 2-Couches cachées : apprennent les relations complexes. 3-Couche de sortie : donne le résultat final."
+  },
+  {
+    cat:"Deep Learning",
+    q:"De quoi s'inspire l'architecture d'un réseau de neurones artificiel ?",
+    opts:["D'un ordinateur classique","Du fonctionnement des neurones du cerveau humain","D'une base de données relationnelle","D'un algorithme de tri"],
+    ans:1,
+    exp:"Un réseau de neurones artificiel (ANN) est un système informatique dont la conception est inspirée du fonctionnement des neurones du cerveau humain."
+  },
+  {
+    cat:"Deep Learning",
+    q:"Dans la détection de défauts en usine (Deep Learning), si la probabilité de défaut est 0,08, que se passe-t-il ?",
+    opts:["Le produit est rejeté","Un bras robotisé intervient","Le produit est accepté et continue sur le convoyeur","L'opérateur humain est alerté"],
+    ans:2,
+    exp:"Probabilité élevée (ex: 0,92) → produit rejeté par bras robotisé. Probabilité faible (ex: 0,08) → produit accepté et continue sur le convoyeur."
+  },
+  {
+    cat:"Deep Learning",
+    q:"Dans l'exemple voiture/moto : P(V)=0.7, P(M)=0.3. Quelle est la probabilité P(R2) d'un véhicule à 2 roues ?",
+    opts:["0.50","0.68","0.32","0.89"],
+    ans:2,
+    exp:"P(R2) = P(R2|V)×P(V) + P(R2|M)×P(M) = (0.05×0.7) + (0.95×0.3) = 0.035 + 0.285 = 0.32"
+  },
+  {
+    cat:"Deep Learning",
+    q:"Si un véhicule a 2 roues, quelle est la probabilité que ce soit une moto ? P(M|R2)=?",
+    opts:["0.32","0.50","0.68","0.89"],
+    ans:3,
+    exp:"P(M|R2) = P(M∩R2)/P(R2) = (0.95×0.3)/0.32 = 0.285/0.32 ≈ 0.89 → 89% de chances que ce soit une moto."
+  },
+  {
+    cat:"Deep Learning",
+    q:"Quelle est la probabilité P(R4) d'un véhicule à 4 roues dans l'exemple du cours ?",
+    opts:["0.32","0.50","0.68","0.89"],
+    ans:2,
+    exp:"P(R4) = P(R4|V)×P(V) + P(R4|M)×P(M) = (0.95×0.7) + (0.05×0.3) = 0.665 + 0.015 = 0.68"
+  },
+  {
+    cat:"Deep Learning",
+    q:"Si un véhicule a 4 roues, quelle est la probabilité que ce soit une voiture ? P(V|R4)=?",
+    opts:["0.68","0.89","0.95","0.98"],
+    ans:3,
+    exp:"P(V|R4) = P(V∩R4)/P(R4) = (0.95×0.7)/0.68 = 0.665/0.68 ≈ 0.98 → 98% de chances que ce soit une voiture."
+  },
+  {
+    cat:"Deep Learning",
+    q:"Dans le tableau de détection de défauts en usine, quelles sont les 4 variables d'entrée (features) ?",
+    opts:["Couleur, Forme, Taille, Poids","Température machine, Vibration, Vitesse du tapis convoyeur, Taille de la pièce","Prix, Quantité, Fournisseur, Date","Opérateur, Machine, Équipe, Horaire"],
+    ans:1,
+    exp:"Les 4 features : Température machine (°C), Vibration (mm/s), Vitesse du tapis convoyeur (m/s), Taille de la pièce (mm) → Sortie : 0=Normal, 1=Défectueux."
+  },
+  {
+    cat:"Deep Learning",
+    q:"Quelle est la différence entre un modèle discriminatif et génératif en Deep Learning ?",
+    opts:["Ils sont identiques","Discriminatif : classe/prédit des étiquettes. Génératif : crée de nouvelles données similaires à celles apprises","Génératif classe, discriminatif génère","Discriminatif utilise le Deep Learning, génératif non"],
+    ans:1,
+    exp:"Discriminatif : classe les emails en spam/non spam. Génératif : crée de nouvelles images de visages réalistes qui n'existent pas dans les données d'entraînement."
+  },
+  {
+    cat:"Deep Learning",
+    q:"Comment le Deep Learning reconnaît-il une image (voiture ou moto) ?",
+    opts:["En comparant pixel par pixel avec une image de référence","Via un algorithme non neuronal qui extrait les caractéristiques (formes, contours, textures), puis un réseau de neurones qui classe","En demandant à un humain de vérifier","En utilisant uniquement la couleur de l'image"],
+    ans:1,
+    exp:"Le DL extrait d'abord les caractéristiques (roues, phares, structure, taille...) puis un réseau de neurones les utilise pour classer : voiture ou moto."
+  },
+  {
+    cat:"Deep Learning",
+    q:"Dans la reconnaissance d'objets par IA (scènes du cours), que fait le modèle Deep Learning ?",
+    opts:["Il colorie uniquement les objets","Il détecte et nomme automatiquement les objets dans différentes scènes (cuisinier, couteau, écureuil, branche...)","Il compte uniquement le nombre d'objets","Il mesure la taille des objets en cm"],
+    ans:1,
+    exp:"Le DL détecte et reconnaît automatiquement les objets dans chaque scène : cuisine (cuisinier, couteau, tomate), forêt (écureuil, branche, gland), etc."
+  },
+
+  // ══════════════════════════════════════════════════════
+  // IA GÉNÉRATIVE (8)
+  // ══════════════════════════════════════════════════════
+  {
+    cat:"IA Générative",
+    q:"Qu'est-ce que l'IA générative ?",
+    opts:["Un système qui prédit uniquement des valeurs numériques","La capacité d'une machine à générer du contenu (texte, son, vidéo, image) à partir de données, comme le ferait un humain","Un robot physique qui fabrique des objets","Un système de correction grammaticale automatique"],
+    ans:1,
+    exp:"L'IA générative produit du contenu au moyen d'algorithmes et de mégadonnées, sous forme de texte, son, vidéo ou image — comme le ferait un humain."
+  },
+  {
+    cat:"IA Générative",
+    q:"Sur quelles 3 technologies repose l'IA générative ?",
+    opts:["Bases de données, SQL, Java","Réseaux de neurones profonds (Deep Learning), Transformers, Modèles probabilistes","Algorithmes de tri, arbres de décision, K-means","Protocoles réseau, pare-feu, serveurs"],
+    ans:1,
+    exp:"L'IA générative repose sur : 1-Réseaux de neurones profonds, 2-Transformers (ex: GPT), 3-Modèles probabilistes (calcul de probabilité du prochain mot/pixel)."
+  },
+  {
+    cat:"IA Générative",
+    q:"Qu'est-ce qu'un Transformer en IA ?",
+    opts:["Un composant électrique","Une architecture de réseau de neurones permettant de comprendre les relations entre les mots et données très efficacement","Un logiciel de transformation de fichiers","Un robot transformable"],
+    ans:1,
+    exp:"Un Transformer est une architecture universelle : à partir d'un même cœur technologique, l'IA peut parler, traduire, lire, écrire, voir et dessiner."
+  },
+  {
+    cat:"IA Générative",
+    q:"Quel est l'objectif principal d'un modèle Transformer ?",
+    opts:["Trier des images par couleur","Prédire le prochain mot (token) dans une phrase en calculant sa probabilité","Traduire uniquement l'anglais vers le français","Détecter les virus informatiques"],
+    ans:1,
+    exp:"L'objectif du Transformer est de prédire le prochain token (mot) : il calcule la probabilité de chaque mot possible et choisit le plus probable."
+  },
+  {
+    cat:"IA Générative",
+    q:"Qu'est-ce qu'un LLM (Large Language Model) ?",
+    opts:["Un logiciel de gestion de fichiers volumineux","Un sous-domaine de l'IA se concentrant sur la compréhension et la manipulation du langage humain","Un réseau social basé sur l'IA","Un système de stockage de données massives"],
+    ans:1,
+    exp:"Un LLM se concentre sur la compréhension, l'interprétation et la génération du langage humain de manière naturelle, basé sur l'architecture Transformer."
+  },
+  {
+    cat:"IA Générative",
+    q:"Quelles sont les sources de données utilisées pour entraîner les LLM ?",
+    opts:["Uniquement des bases de données d'entreprises","Livres numérisés, Wikipédia, Common Crawl, WebText et conversations classées par des humains","Uniquement des articles scientifiques","Uniquement des réseaux sociaux"],
+    ans:1,
+    exp:"LLM sources : Livres numérisés (langage structuré), Wikipédia (connaissances générales), Common Crawl (web massif), WebText (pages populaires), conversations humaines."
+  },
+  {
+    cat:"IA Générative",
+    q:"Quelle est la différence entre GPT et ChatGPT ?",
+    opts:["GPT et ChatGPT sont la même chose","GPT est le modèle de langage (outil de base), ChatGPT est l'agent conversationnel qui utilise GPT","ChatGPT est plus puissant que GPT","GPT est un chatbot, ChatGPT est un modèle"],
+    ans:1,
+    exp:"GPT = Generative Pre-trained Transformer (modèle de base). ChatGPT = chatbot (agent conversationnel) qui utilise un modèle GPT pour simuler des conversations."
+  },
+  {
+    cat:"IA Générative",
+    q:"Quels outils génèrent de la musique par IA ?",
+    opts:["ChatGPT, Gemini, Claude","DALL·E, GPT-4o, Midjourney","Suno AI, Udio, Riffusion","Runway, Pika, Synthesia"],
+    ans:2,
+    exp:"Génération musicale : Suno AI, Udio, Riffusion. Images : DALL·E, Midjourney. Vidéo : Runway, Pika, Synthesia. Texte : ChatGPT, Gemini, Claude."
+  },
+
+  // ══════════════════════════════════════════════════════
+  // PROMPTS (7)
+  // ══════════════════════════════════════════════════════
+  {
+    cat:"Prompts",
+    q:"Qu'est-ce qu'un 'prompt' dans le contexte des LLM ?",
+    opts:["Une touche de clavier spéciale","Le texte initial fourni au modèle de langage pour lui indiquer la tâche à réaliser","Un fichier de configuration du modèle","Le résultat généré par le modèle"],
+    ans:1,
+    exp:"Un prompt est le texte initial que l'utilisateur fournit à un LLM (comme ChatGPT) pour lui indiquer la tâche à réaliser."
+  },
+  {
+    cat:"Prompts",
+    q:"Quels sont les éléments clés pour rédiger un bon prompt selon le cours ?",
+    opts:["Longueur maximale, complexité, vocabulaire technique","Clarté, Contexte, Longueur adaptée, Langage naturel, Spécificité","Utiliser uniquement des mots-clés","Toujours commencer par 'Bonjour ChatGPT'"],
+    ans:1,
+    exp:"Un bon prompt : Clair (précis), Contextuel (fournir du contexte), Longueur adaptée (ni trop court ni trop long), Langage naturel, Spécifique dans la demande."
+  },
+  {
+    cat:"Prompts",
+    q:"Pour clarifier un concept, quel est un exemple de bon prompt selon le cours ?",
+    opts:["'blockchain'","'Explique blockchain'","'Peux-tu expliquer le fonctionnement de la blockchain de manière simple et concise ?'","'blockchain définition urgent'"],
+    ans:2,
+    exp:"Un bon prompt de clarification est complet et précis : 'Peux-tu expliquer le fonctionnement de la blockchain de manière simple et concise ?' — clair, naturel, spécifique."
+  },
+  {
+    cat:"Prompts",
+    q:"Pourquoi fournir du contexte dans un prompt est-il important ?",
+    opts:["Pour que le prompt soit plus long","Pour aider ChatGPT à comprendre la tâche : plus le contexte est précis, meilleures sont les réponses","Pour impressionner le modèle","Le contexte n'a aucune importance"],
+    ans:1,
+    exp:"Le contexte aide le modèle à comprendre exactement ce qu'on attend. Ex : préciser qu'on écrit un article sur l'IA pour obtenir des informations pertinentes pour cet article."
+  },
+  {
+    cat:"Prompts",
+    q:"Quel type de prompt permet de simuler un cours en ligne selon les exemples du cours ?",
+    opts:["'mathématiques'","'Agis en tant que professeur de mathématiques et pose-moi une question de trigonométrie pour simuler un cours en ligne'","'question de maths'","'trigonométrie niveau lycée'"],
+    ans:1,
+    exp:"Le role-playing dans les prompts : 'Agis en tant que...' est très efficace pour simuler des interactions spécifiques (professeur, expert, conseiller)."
+  },
+  {
+    cat:"Prompts",
+    q:"Comment rédiger un prompt pour avoir une recommandation de produits informatiques selon le cours ?",
+    opts:["'ordinateur'","'bon ordinateur portable'","'Je cherche un ordinateur portable léger, autonomie 8h, processeur puissant, écran haute qualité pour retouche photo. Options et prix ?'","'ordinateur pas cher'"],
+    ans:2,
+    exp:"Un prompt spécifique donne de meilleures réponses : préciser l'usage (professionnel), les critères (légèreté, autonomie 8h, processeur, écran), et demander prix."
+  },
+  {
+    cat:"Prompts",
+    q:"Dans les phases d'entraînement des LLM, que fait le 'Fine-Tuning' (Phase 2) ?",
+    opts:["Il collecte les données d'entraînement initiales","Il adapte le modèle à la conversation : exemples de dialogues + classement humain + modèle de récompense","Il génère les premières prédictions","Il efface les données d'entraînement initiales"],
+    ans:1,
+    exp:"Fine-Tuning (Phase 2) : Conversations idéales (exemples de dialogues) + Classement humain (évaluation des réponses) + Modèle de récompense (apprend les préférences humaines)."
+  },
+
+  // ══════════════════════════════════════════════════════
+  // OUTILS (7)
+  // ══════════════════════════════════════════════════════
+  {
+    cat:"Outils",
+    q:"Qu'est-ce que NotebookLM et qui l'a développé ?",
+    opts:["Un chatbot créé par OpenAI","Un outil IA de Google (lancé en 2023 sous le nom Project Tailwind) qui analyse des documents pour résumer, répondre et créer du contenu","Un logiciel de Microsoft pour la prise de notes","Un assistant vocal d'Amazon"],
+    ans:1,
+    exp:"NotebookLM est un assistant IA développé par Google Labs, lancé en 2023 (nom de code Project Tailwind), utilisant le modèle Gemini."
+  },
+  {
+    cat:"Outils",
+    q:"Quels types de sources peut-on ajouter dans NotebookLM ?",
+    opts:["Uniquement des fichiers PDF","PDF, Docs Google, sites web, vidéos YouTube, EPUB, interviews","Uniquement des fichiers Word","Uniquement des pages Wikipédia"],
+    ans:1,
+    exp:"NotebookLM accepte : liens Wikipédia, sites officiels, EPUB, PDF, vidéos YouTube, interviews — jusqu'à 50 sources par carnet."
+  },
+  {
+    cat:"Outils",
+    q:"Quelles fonctionnalités propose l'interface Studio de NotebookLM ?",
+    opts:["Uniquement des résumés textuels","Résumé audio, Résumé vidéo, Rapports, Quiz, Tableau, Présentation (bêta), Carte mentale, Fiches, Infographie (bêta)","Uniquement des traductions","Uniquement des calculs mathématiques"],
+    ans:1,
+    exp:"Studio de NotebookLM offre : Résumé audio, Résumé vidéo, Rapports, Quiz (QCM), Tableau synthétique, Présentation PowerPoint (bêta), Carte mentale, Fiches, Infographie (bêta)."
+  },
+  {
+    cat:"Outils",
+    q:"Quel modèle de langage NotebookLM utilise-t-il pour analyser les documents ?",
+    opts:["GPT-4 d'OpenAI","Claude d'Anthropic","Gemini de Google","LLaMA de Meta"],
+    ans:2,
+    exp:"NotebookLM est décrit comme 'source-grounded' et utilise le modèle Gemini de Google pour analyser, synthétiser et interagir avec vos documents."
+  },
+  {
+    cat:"Outils",
+    q:"Qu'est-ce que la plateforme Arena et comment fonctionne-t-elle ?",
+    opts:["Un jeu vidéo utilisant l'IA","Une plateforme qui présente anonymement deux LLM, l'utilisateur vote pour la meilleure réponse, et ces votes classent les modèles","Un réseau social de chercheurs en IA","Un outil de création d'images par IA"],
+    ans:1,
+    exp:"Arena : l'utilisateur pose une question → deux modèles (GPT-4, Claude, etc.) répondent anonymement → l'utilisateur choisit la meilleure → ces votes servent à classer les LLM."
+  },
+  {
+    cat:"Outils",
+    q:"Quel outil peut générer automatiquement une présentation PowerPoint depuis un cours ?",
+    opts:["ChatGPT directement","La fonctionnalité Présentation (bêta) de l'interface Studio de NotebookLM","Google Slides classique","Microsoft Word"],
+    ans:1,
+    exp:"L'interface Studio de NotebookLM propose une fonctionnalité Présentation (bêta) qui génère automatiquement un PowerPoint à partir du contenu importé."
+  },
+  {
+    cat:"Outils",
+    q:"Quels outils sont mentionnés dans le cours pour la génération de vidéos par IA ?",
+    opts:["ChatGPT, Gemini, Claude","DALL·E, GPT-4o, Midjourney","Suno AI, Udio, Riffusion","Runway, Pika, Synthesia"],
+    ans:3,
+    exp:"Génération vidéo : Runway, Pika, Synthesia. Images : DALL·E, Midjourney. Musique : Suno AI, Udio, Riffusion. Texte/Chatbot : ChatGPT, Gemini, Claude."
+  }
+];
+
+let questions = [...ALL_QUESTIONS];
+let current = 0;
+let score = 0;
+let answers = new Array(questions.length).fill(null);
+let wrongOnly = false;
+
+function filterCat(cat, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  questions = cat === 'all' ? [...ALL_QUESTIONS] : ALL_QUESTIONS.filter(q => q.cat === cat);
+  answers = new Array(questions.length).fill(null);
+  score = 0; current = 0;
+  document.getElementById('s-total').textContent = questions.length;
+  document.getElementById('result-screen').classList.remove('show');
+  document.getElementById('quiz-screen').style.display = 'block';
+  renderQ();
+}
+
+function renderQ() {
+  const q = questions[current];
+  const letters = ['A','B','C','D'];
+  const answered = answers[current];
+
+  const optsHTML = q.opts.map((opt, i) => {
+    let cls = 'option';
+    if (answered !== null) {
+      if (i === q.ans) cls += ' correct';
+      else if (i === answered && answered !== q.ans) cls += ' wrong';
+    }
+    return `<button class="${cls}" onclick="selectAns(${i})" ${answered !== null ? 'disabled' : ''}>
+      <span class="opt-letter">${letters[i]}</span><span>${opt}</span>
+    </button>`;
+  }).join('');
+
+  document.getElementById('q-card').innerHTML = `
+    <div class="q-number">Question ${current + 1} sur ${questions.length}</div>
+    <div class="q-category">${q.cat}</div>
+    <div class="q-text">${q.q}</div>
+    <div class="options">${optsHTML}</div>
+    <div class="explanation ${answered !== null ? 'show' : ''}">
+      💡 <strong>Explication :</strong> ${q.exp}
+    </div>`;
+
+  const answered_count = answers.filter(a => a !== null).length;
+  const correct_count = answers.filter((a, i) => a !== null && a === questions[i]?.ans).length;
+  document.getElementById('s-current').textContent = current + 1;
+  document.getElementById('s-score').textContent = correct_count;
+  document.getElementById('s-pct').textContent = answered_count > 0 ? Math.round((correct_count / answered_count) * 100) + '%' : '0%';
+  document.getElementById('counter-pill').textContent = `${current + 1} / ${questions.length}`;
+  document.getElementById('progress-bar').style.width = ((current + 1) / questions.length * 100) + '%';
+}
+
+function selectAns(i) {
+  if (answers[current] !== null) return;
+  answers[current] = i;
+  if (i === questions[current].ans) score++;
+  renderQ();
+  setTimeout(() => {
+    if (current < questions.length - 1) nextQ();
+    else showResult();
+  }, 1500);
+}
+
+function nextQ() {
+  if (current < questions.length - 1) { current++; renderQ(); }
+  else showResult();
+}
+
+function prevQ() {
+  if (current > 0) { current--; renderQ(); }
+}
+
+function showResult() {
+  document.getElementById('quiz-screen').style.display = 'none';
+  const rs = document.getElementById('result-screen');
+  rs.classList.add('show');
+
+  const total = questions.length;
+  const correct = answers.filter((a, i) => a !== null && a === questions[i]?.ans).length;
+  const pct = Math.round((correct / total) * 100);
+
+  document.getElementById('final-score').textContent = correct;
+  document.getElementById('final-den').textContent = `/ ${total}`;
+  document.getElementById('score-circle').style.setProperty('--pct', `${pct * 3.6}deg`);
+
+  let msg = '', sub = '';
+  if (pct >= 90) { msg = '🏆 Excellent !'; sub = 'Maîtrise parfaite du cours IA !'; }
+  else if (pct >= 75) { msg = '🎯 Très bien !'; sub = 'Bonne maîtrise, quelques révisions à faire.'; }
+  else if (pct >= 60) { msg = '👍 Bien !'; sub = 'Des notions à revoir, continuez !'; }
+  else if (pct >= 40) { msg = '📚 Passable'; sub = 'Révisions nécessaires sur plusieurs chapitres.'; }
+  else { msg = '💪 À retravailler'; sub = 'Revoyez le cours et retentez !'; }
+
+  document.getElementById('result-msg').textContent = msg;
+  document.getElementById('result-sub').textContent = sub;
+
+  // Category breakdown
+  const cats = [...new Set(questions.map(q => q.cat))];
+  const breakdownHTML = cats.map(cat => {
+    const catQs = questions.map((q, i) => ({q, a: answers[i], i})).filter(x => x.q.cat === cat);
+    const catCorrect = catQs.filter(x => x.a !== null && x.a === x.q.ans).length;
+    const catTotal = catQs.length;
+    return `<div class="cat-result">
+      <div class="cat-result-name">${cat}</div>
+      <div class="cat-result-score">${catCorrect}/${catTotal} <span style="font-size:0.7rem;color:var(--muted)">(${catTotal>0?Math.round(catCorrect/catTotal*100):0}%)</span></div>
+    </div>`;
+  }).join('');
+  document.getElementById('cat-breakdown').innerHTML = breakdownHTML;
+}
+
+function restart() {
+  score = 0; current = 0;
+  answers = new Array(questions.length).fill(null);
+  document.getElementById('result-screen').classList.remove('show');
+  document.getElementById('quiz-screen').style.display = 'block';
+  renderQ();
+}
+
+function reviewWrong() {
+  const wrongQs = questions.filter((q, i) => answers[i] === null || answers[i] !== q.ans);
+  if (wrongQs.length === 0) { alert('Bravo ! Aucune erreur à revoir !'); return; }
+  questions = wrongQs;
+  answers = new Array(questions.length).fill(null);
+  score = 0; current = 0;
+  document.getElementById('s-total').textContent = questions.length;
+  document.getElementById('result-screen').classList.remove('show');
+  document.getElementById('quiz-screen').style.display = 'block';
+  renderQ();
+}
+
+document.getElementById('s-total').textContent = questions.length;
+renderQ();
+</script>
+</body>
+</html>
